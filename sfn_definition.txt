@@ -1,0 +1,67 @@
+{
+  "Comment": "Check if the user photo is on the system",
+  "StartAt": "HelloWorld",
+  "States": {
+    "HelloWorld": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-west-2:750984048303:function:Authentication",
+      "Next": "Success_Fail_Choice",
+      "Retry": [ {
+            "ErrorEquals": ["States.Timeout"],
+            "IntervalSeconds": 1,
+            "MaxAttempts": 2,
+            "BackoffRate": 2.0
+         } ],
+      "Catch": [ {
+            "ErrorEquals": ["States.ALL"],
+            "Result": "error during transition",
+            "ResultPath":"$.payment_type",
+            "Next": "EndState"
+         } ]
+    },
+    
+    "Success_Fail_Choice": {
+        "Type": "Choice",
+        "Choices": [
+            {
+                "Variable" : "$.auth",
+                "NumericEquals" : 1,
+                "Next": "Payment"
+            },
+            {
+                "Variable" : "$.auth",
+                "NumericEquals" : 0,
+                "Result" : "Auth Failed",
+                "Next": "EndState"
+            }
+        ]
+    },
+
+    "Payment": {
+        "Type": "Task",
+        "Resource": "arn:aws:lambda:us-west-2:750984048303:function:Payment",
+        "Next": "PaymentChoice"
+    },
+    "PaymentChoice": {
+        "Type": "Choice",
+        "Choices": [
+            {
+                "Variable": "$.auth",
+                "NumericEquals": 1,
+                "Result": "Automatic Payment",
+                "Next": "EndState"
+            },
+            {
+                "Variable": "$.auth",
+                "NumericEquals": 0,
+                "Result" :"Manual Payment",
+                "Next": "EndState"
+            }
+        ]
+    },
+    "EndState": {
+        "Type": "Pass",
+        "End": true
+    }
+  }
+}
